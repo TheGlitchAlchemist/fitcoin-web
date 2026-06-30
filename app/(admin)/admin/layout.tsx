@@ -8,7 +8,7 @@ type AdminLayoutProps = {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F2F2F2]">
       <div className="flex">
         <AdminSidebar />
 
@@ -16,7 +16,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <AdminNavbar />
 
           <main className="flex-1 p-6">
-            {children}
+            <div className="mx-auto max-w-7xl">{children}</div>
           </main>
         </div>
       </div>
