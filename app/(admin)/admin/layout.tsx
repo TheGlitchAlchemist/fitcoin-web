@@ -12,11 +12,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <div className="flex">
         <AdminSidebar />
 
-        <div className="flex min-h-screen flex-1 flex-col">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <AdminNavbar />
 
-          <main className="flex-1 p-6">
-            <div className="mx-auto max-w-7xl">{children}</div>
+          <main className="flex-1 px-4 py-4 sm:px-6 lg:p-6">
+            <div className="mx-auto w-full max-w-7xl">{children}</div>
           </main>
         </div>
       </div>

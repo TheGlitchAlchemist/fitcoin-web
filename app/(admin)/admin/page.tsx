@@ -89,14 +89,14 @@ const recentActivity = [
 export default function AdminPage() {
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-[2rem] bg-[#0B1A26] p-8 text-white shadow-xl shadow-slate-900/10">
+      <section className="flex flex-col justify-between gap-5 rounded-[1.5rem] bg-[#0B1A26] p-5 text-white shadow-xl shadow-slate-900/10 sm:rounded-[2rem] sm:p-8 lg:flex-row lg:items-center">
         <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
           <div className="max-w-2xl">
             <div className="mb-4 inline-flex rounded-full border border-[#2CBF42]/30 bg-[#2CBF42]/10 px-4 py-2 text-sm font-medium text-[#2CBF42]">
               Ecosistema Fitcoin
             </div>
 
-            <h1 className="text-4xl font-bold tracking-tight">
+           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
               Panel administrativo
             </h1>
 

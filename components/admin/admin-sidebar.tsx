@@ -49,7 +49,7 @@ export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden min-h-screen w-72 border-r border-white/10 bg-[#0B1A26] px-5 py-6 text-white lg:block">
+    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-y-auto border-r border-white/10 bg-[#0B1A26] px-5 py-6 text-white lg:block">
       <div className="mb-8 flex items-center gap-3">
         <div className="relative h-12 w-12 overflow-hidden rounded-2xl bg-white">
           <Image
