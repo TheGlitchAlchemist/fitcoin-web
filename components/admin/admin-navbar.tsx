@@ -1,5 +1,7 @@
 "use client";
 
+import type { UserProfile } from "@/lib/auth/current-user";
+import { logout } from "@/app/(auth)/actions";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -12,11 +14,14 @@ import {
   Search,
   ShieldAlert,
   TicketCheck,
-  UserRound,
   Users,
   X,
 } from "lucide-react";
 import { useState } from "react";
+
+type AdminNavbarProps = {
+  profile: UserProfile;
+};
 
 const adminLinks = [
   {
@@ -51,7 +56,7 @@ const adminLinks = [
   },
 ];
 
-export function AdminNavbar() {
+export function AdminNavbar({ profile }: AdminNavbarProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -95,10 +100,23 @@ export function AdminNavbar() {
               <Bell className="h-5 w-5" />
             </button>
 
-            <button className="hidden items-center gap-2 rounded-2xl bg-[#0B1A26] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#12304a] sm:flex">
-              <UserRound className="h-4 w-4" />
-              Admin
-            </button>
+            <div className="hidden items-center gap-3 sm:flex">
+              <div className="text-right">
+                <p className="text-sm font-bold text-[#0B1A26]">
+                  {profile.full_name}
+                </p>
+                <p className="text-xs text-slate-500">{profile.email}</p>
+              </div>
+
+              <form action={logout}>
+                <button
+                  type="submit"
+                  className="rounded-2xl bg-[#0B1A26] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#12304a]"
+                >
+                  Salir
+                </button>
+              </form>
+            </div>
           </div>
         </div>
 
@@ -181,6 +199,22 @@ export function AdminNavbar() {
                 );
               })}
             </nav>
+
+            <div className="mt-auto rounded-3xl border border-white/10 bg-white/10 p-4">
+              <p className="text-sm font-bold text-white">
+                {profile.full_name}
+              </p>
+              <p className="mt-1 text-xs text-white/50">{profile.email}</p>
+
+              <form action={logout} className="mt-4">
+                <button
+                  type="submit"
+                  className="w-full rounded-2xl bg-[#17A649] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#2CBF42]"
+                >
+                  Cerrar sesión
+                </button>
+              </form>
+            </div>
           </aside>
         </div>
       )}
