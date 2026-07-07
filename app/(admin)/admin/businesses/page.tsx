@@ -1,8 +1,17 @@
-import { createBusiness, toggleBusinessStatus } from "./actions";
+import Link from "next/link";
 import {
+  archiveBusiness,
+  createBusiness,
+  restoreBusiness,
+  toggleBusinessStatus,
+} from "./actions";
+import {
+  Archive,
   Building2,
   MapPin,
+  Pencil,
   Plus,
+  RotateCcw,
   Search,
   Store,
   ToggleLeft,
@@ -40,17 +49,22 @@ export default async function BusinessesPage() {
     businesses?.filter((business) => business.status === "active").length ?? 0;
 
   const inactiveBusinesses =
-    businesses?.filter((business) => business.status !== "active").length ?? 0;
+    businesses?.filter((business) => business.status === "inactive").length ??
+    0;
+
+  const archivedBusinesses =
+    businesses?.filter((business) => business.status === "archived").length ??
+    0;
 
   return (
     <div className="space-y-6">
-      <section className="flex flex-col justify-between gap-4 rounded-[2rem] bg-[#0B1A26] p-8 text-white shadow-xl shadow-slate-900/10 lg:flex-row lg:items-center">
+      <section className="flex flex-col justify-between gap-5 rounded-[1.5rem] bg-[#0B1A26] p-5 text-white shadow-xl shadow-slate-900/10 sm:rounded-[2rem] sm:p-8 lg:flex-row lg:items-center">
         <div>
           <div className="mb-4 inline-flex rounded-full border border-[#2CBF42]/30 bg-[#2CBF42]/10 px-4 py-2 text-sm font-medium text-[#2CBF42]">
             Gestión de negocios
           </div>
 
-          <h1 className="text-4xl font-bold tracking-tight">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
             Negocios afiliados
           </h1>
 
@@ -145,7 +159,7 @@ export default async function BusinessesPage() {
         </form>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="rounded-2xl bg-[#17A649]/10 p-3 text-[#17A649]">
@@ -199,6 +213,24 @@ export default async function BusinessesPage() {
             {inactiveBusinesses}
           </h2>
         </article>
+
+        <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="rounded-2xl bg-slate-100 p-3 text-slate-600">
+              <Archive className="h-5 w-5" />
+            </div>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+              Archivados
+            </span>
+          </div>
+
+          <p className="mt-5 text-sm font-medium text-slate-500">
+            Negocios archivados
+          </p>
+          <h2 className="mt-1 text-3xl font-bold text-[#0B1A26]">
+            {archivedBusinesses}
+          </h2>
+        </article>
       </section>
 
       <section className="rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
@@ -223,19 +255,21 @@ export default async function BusinessesPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left">
+          <table className="w-full min-w-[1100px] text-left">
             <thead>
               <tr className="border-b border-slate-100 bg-[#F2F2F2]/60 text-sm text-slate-500">
                 <th className="px-6 py-4 font-semibold">Negocio</th>
                 <th className="px-6 py-4 font-semibold">Dirección</th>
                 <th className="px-6 py-4 font-semibold">Estado</th>
                 <th className="px-6 py-4 font-semibold">Fecha de registro</th>
+                <th className="px-6 py-4 font-semibold">Acciones</th>
               </tr>
             </thead>
 
             <tbody>
               {businesses?.map((business: Business) => {
                 const isActive = business.status === "active";
+                const isArchived = business.status === "archived";
 
                 return (
                   <tr
@@ -271,29 +305,42 @@ export default async function BusinessesPage() {
                         <span
                           className={[
                             "rounded-full px-3 py-1 text-xs font-bold",
-                            isActive
-                              ? "bg-green-50 text-green-700"
-                              : "bg-yellow-50 text-yellow-700",
-                          ].join(" ")}
+                            business.status === "active" &&
+                              "bg-green-50 text-green-700",
+                            business.status === "inactive" &&
+                              "bg-yellow-50 text-yellow-700",
+                            business.status === "archived" &&
+                              "bg-slate-100 text-slate-600",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
                         >
-                          {isActive ? "Activo" : "Inactivo"}
+                          {business.status === "active" && "Activo"}
+                          {business.status === "inactive" && "Inactivo"}
+                          {business.status === "archived" && "Archivado"}
                         </span>
 
-                        <form action={toggleBusinessStatus}>
-                          <input type="hidden" name="id" value={business.id} />
-                          <input
-                            type="hidden"
-                            name="currentStatus"
-                            value={business.status}
-                          />
+                        {!isArchived && (
+                          <form action={toggleBusinessStatus}>
+                            <input
+                              type="hidden"
+                              name="id"
+                              value={business.id}
+                            />
+                            <input
+                              type="hidden"
+                              name="currentStatus"
+                              value={business.status}
+                            />
 
-                          <button
-                            type="submit"
-                            className="rounded-full border border-slate-200 px-3 py-1 text-xs font-bold text-slate-500 transition hover:border-[#17A649] hover:text-[#17A649]"
-                          >
-                            {isActive ? "Desactivar" : "Activar"}
-                          </button>
-                        </form>
+                            <button
+                              type="submit"
+                              className="rounded-full border border-slate-200 px-3 py-1 text-xs font-bold text-slate-500 transition hover:border-[#17A649] hover:text-[#17A649]"
+                            >
+                              {isActive ? "Desactivar" : "Activar"}
+                            </button>
+                          </form>
+                        )}
                       </div>
                     </td>
 
@@ -306,6 +353,52 @@ export default async function BusinessesPage() {
                           year: "numeric",
                         }
                       )}
+                    </td>
+
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/admin/businesses/${business.id}/edit`}
+                          className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-[#17A649] hover:text-[#17A649]"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Editar
+                        </Link>
+
+                        {!isArchived ? (
+                          <form action={archiveBusiness}>
+                            <input
+                              type="hidden"
+                              name="id"
+                              value={business.id}
+                            />
+
+                            <button
+                              type="submit"
+                              className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-red-400 hover:text-red-500"
+                            >
+                              <Archive className="h-4 w-4" />
+                              Archivar
+                            </button>
+                          </form>
+                        ) : (
+                          <form action={restoreBusiness}>
+                            <input
+                              type="hidden"
+                              name="id"
+                              value={business.id}
+                            />
+
+                            <button
+                              type="submit"
+                              className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-[#17A649] hover:text-[#17A649]"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                              Restaurar
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
