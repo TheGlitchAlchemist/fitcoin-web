@@ -25,7 +25,7 @@ export async function login(formData: FormData) {
 
   const { data: profile, error: profileError } = await supabaseServiceRole
     .from("profiles")
-    .select("id, full_name, email, role, business_id, status")
+    .select("id, full_name, email, role, status")
     .eq("id", data.user.id)
     .single();
 

@@ -4,11 +4,31 @@ import { supabaseServiceRole } from "@/lib/supabase/service-role";
 
 export type UserProfile = {
   id: string;
-  full_name: string;
-  email: string;
+  full_name: string | null;
+  email: string | null;
   role: "admin" | "business";
-  business_id: string | null;
   status: string;
+};
+
+export type BusinessMembership = {
+  id: string;
+  business_id: string;
+  profile_id: string;
+  role: string;
+  status: string;
+  created_at: string;
+};
+
+export type Business = {
+  id: string;
+  name: string;
+  slug: string | null;
+  description: string | null;
+  address: string | null;
+  logo_url: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export async function getCurrentUserProfile() {
@@ -25,7 +45,7 @@ export async function getCurrentUserProfile() {
 
   const { data: profile, error: profileError } = await supabaseServiceRole
     .from("profiles")
-    .select("id, full_name, email, role, business_id, status")
+    .select("id, full_name, email, role, status")
     .eq("id", user.id)
     .single();
 
@@ -72,9 +92,36 @@ export async function requireBusiness() {
     redirect("/admin");
   }
 
-  if (!session.profile.business_id) {
+  const { data: membership, error: membershipError } = await supabaseServiceRole
+    .from("business_members")
+    .select("id, business_id, profile_id, role, status, created_at")
+    .eq("profile_id", session.profile.id)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (membershipError || !membership) {
     redirect("/login?error=Usuario de negocio sin negocio asignado");
   }
 
-  return session;
+  const { data: business, error: businessError } = await supabaseServiceRole
+    .from("businesses")
+    .select(
+      "id, name, slug, description, address, logo_url, status, created_at, updated_at"
+    )
+    .eq("id", membership.business_id)
+    .maybeSingle();
+
+  if (businessError || !business) {
+    redirect("/login?error=Negocio no encontrado");
+  }
+
+  if (business.status !== "active") {
+    redirect("/login?error=Negocio inactivo");
+  }
+
+  return {
+    ...session,
+    membership: membership as BusinessMembership,
+    business: business as Business,
+  };
 }
