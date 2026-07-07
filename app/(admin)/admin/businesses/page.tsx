@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { StatusMessage } from "@/components/ui/status-message";
+import { ArchiveBusinessForm } from "@/components/admin/archive-business-form";
 import {
   archiveBusiness,
   createBusiness,
@@ -28,7 +30,22 @@ type Business = {
   created_at: string;
 };
 
-export default async function BusinessesPage() {
+type BusinessesPageProps = {
+  searchParams: Promise<{
+    success?: string;
+    error?: string;
+    q?: string;
+    status?: string;
+  }>;
+};
+
+export default async function BusinessesPage({
+  searchParams,
+}: BusinessesPageProps) {
+  const params = await searchParams;
+  const searchTerm = params.q?.trim().toLowerCase() ?? "";
+const selectedStatus = params.status ?? "all";
+
   const { data: businesses, error } = await supabaseAdminServer
     .from("businesses")
     .select("id, name, description, address, status, created_at")
@@ -55,6 +72,20 @@ export default async function BusinessesPage() {
   const archivedBusinesses =
     businesses?.filter((business) => business.status === "archived").length ??
     0;
+    
+    const filteredBusinesses =
+  businesses?.filter((business) => {
+    const matchesSearch =
+      !searchTerm ||
+      business.name.toLowerCase().includes(searchTerm) ||
+      business.description?.toLowerCase().includes(searchTerm) ||
+      business.address?.toLowerCase().includes(searchTerm);
+
+    const matchesStatus =
+      selectedStatus === "all" || business.status === selectedStatus;
+
+    return matchesSearch && matchesStatus;
+  }) ?? [];
 
   return (
     <div className="space-y-6">
@@ -82,6 +113,8 @@ export default async function BusinessesPage() {
           Nuevo negocio
         </a>
       </section>
+
+      <StatusMessage success={params.success} error={params.error} />
 
       <section
         id="new-business"
@@ -244,14 +277,45 @@ export default async function BusinessesPage() {
             </p>
           </div>
 
-          <div className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 lg:w-80">
-            <Search className="h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Buscar negocio..."
-              className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-            />
-          </div>
+<form className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
+  <div className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 lg:w-80">
+    <Search className="h-4 w-4 text-slate-400" />
+    <input
+      name="q"
+      type="text"
+      defaultValue={params.q ?? ""}
+      placeholder="Buscar negocio..."
+      className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+    />
+  </div>
+
+  <select
+    name="status"
+    defaultValue={selectedStatus}
+    className="rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 text-sm font-medium text-slate-600 outline-none transition focus:border-[#17A649] focus:bg-white"
+  >
+    <option value="all">Todos</option>
+    <option value="active">Activos</option>
+    <option value="inactive">Inactivos</option>
+    <option value="archived">Archivados</option>
+  </select>
+
+  <button
+    type="submit"
+    className="rounded-2xl bg-[#0B1A26] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#12304a]"
+  >
+    Buscar
+  </button>
+
+  {(params.q || selectedStatus !== "all") && (
+    <Link
+      href="/admin/businesses"
+      className="rounded-2xl border border-slate-200 px-5 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-[#F2F2F2]"
+    >
+      Limpiar
+    </Link>
+  )}
+</form>
         </div>
 
         <div className="overflow-x-auto">
@@ -267,7 +331,7 @@ export default async function BusinessesPage() {
             </thead>
 
             <tbody>
-              {businesses?.map((business: Business) => {
+              {filteredBusinesses.map((business: Business) => {
                 const isActive = business.status === "active";
                 const isArchived = business.status === "archived";
 
@@ -366,21 +430,10 @@ export default async function BusinessesPage() {
                         </Link>
 
                         {!isArchived ? (
-                          <form action={archiveBusiness}>
-                            <input
-                              type="hidden"
-                              name="id"
-                              value={business.id}
-                            />
-
-                            <button
-                              type="submit"
-                              className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500 transition hover:border-red-400 hover:text-red-500"
-                            >
-                              <Archive className="h-4 w-4" />
-                              Archivar
-                            </button>
-                          </form>
+                          <ArchiveBusinessForm
+                            businessId={business.id}
+                            businessName={business.name}
+                          />
                         ) : (
                           <form action={restoreBusiness}>
                             <input
@@ -407,18 +460,18 @@ export default async function BusinessesPage() {
           </table>
         </div>
 
-        {businesses?.length === 0 && (
+        {filteredBusinesses.length === 0 && (
           <div className="p-10 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F2F2F2] text-slate-400">
               <Building2 className="h-7 w-7" />
             </div>
 
             <h3 className="font-bold text-[#0B1A26]">
-              No hay negocios registrados
+              No se encontraron negocios
             </h3>
 
             <p className="mt-2 text-sm text-slate-500">
-              Cuando agregues negocios en Supabase, aparecerán aquí.
+              Intenta cambiar el texto de búsqueda o el filtro de estado.
             </p>
           </div>
         )}
