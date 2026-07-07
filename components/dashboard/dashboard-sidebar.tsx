@@ -17,6 +17,10 @@ const dashboardLinks = [
     label: "Estadísticas",
     href: "/dashboard/stats",
   },
+  {
+    label: "Validar canje",
+    href: "/dashboard/validate",
+  },
 ];
 
 export function DashboardSidebar() {
