@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabaseServiceRole } from "@/lib/supabase/service-role";
 
+function buildUrl(path: string, params: Record<string, string>) {
+  const searchParams = new URLSearchParams(params);
+  return `${path}?${searchParams.toString()}`;
+}
+
 export async function createBusiness(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -11,7 +16,11 @@ export async function createBusiness(formData: FormData) {
   const status = String(formData.get("status") ?? "active");
 
   if (!name) {
-    throw new Error("El nombre del negocio es obligatorio.");
+    redirect(
+      buildUrl("/admin/businesses", {
+        error: "El nombre del negocio es obligatorio.",
+      })
+    );
   }
 
   const { error } = await supabaseServiceRole.from("businesses").insert({
@@ -22,11 +31,21 @@ export async function createBusiness(formData: FormData) {
   });
 
   if (error) {
-    throw new Error(error.message);
+    redirect(
+      buildUrl("/admin/businesses", {
+        error: error.message,
+      })
+    );
   }
 
   revalidatePath("/admin/businesses");
   revalidatePath("/admin");
+
+  redirect(
+    buildUrl("/admin/businesses", {
+      success: "Negocio creado correctamente.",
+    })
+  );
 }
 
 export async function updateBusiness(formData: FormData) {
@@ -37,11 +56,19 @@ export async function updateBusiness(formData: FormData) {
   const status = String(formData.get("status") ?? "active");
 
   if (!id) {
-    throw new Error("No se recibió el ID del negocio.");
+    redirect(
+      buildUrl("/admin/businesses", {
+        error: "No se recibió el ID del negocio.",
+      })
+    );
   }
 
   if (!name) {
-    throw new Error("El nombre del negocio es obligatorio.");
+    redirect(
+      buildUrl(`/admin/businesses/${id}/edit`, {
+        error: "El nombre del negocio es obligatorio.",
+      })
+    );
   }
 
   const { error } = await supabaseServiceRole
@@ -55,22 +82,34 @@ export async function updateBusiness(formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    throw new Error(error.message);
+    redirect(
+      buildUrl(`/admin/businesses/${id}/edit`, {
+        error: error.message,
+      })
+    );
   }
 
   revalidatePath("/admin/businesses");
   revalidatePath(`/admin/businesses/${id}/edit`);
   revalidatePath("/admin");
 
-  redirect("/admin/businesses");
+  redirect(
+    buildUrl("/admin/businesses", {
+      success: "Negocio actualizado correctamente.",
+    })
+  );
 }
 
 export async function toggleBusinessStatus(formData: FormData) {
-  const id = String(formData.get("id") ?? "");
+  const id = String(formData.get("id") ?? "").trim();
   const currentStatus = String(formData.get("currentStatus") ?? "inactive");
 
   if (!id) {
-    throw new Error("No se recibió el ID del negocio.");
+    redirect(
+      buildUrl("/admin/businesses", {
+        error: "No se recibió el ID del negocio.",
+      })
+    );
   }
 
   const nextStatus = currentStatus === "active" ? "inactive" : "active";
@@ -83,17 +122,35 @@ export async function toggleBusinessStatus(formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    throw new Error(error.message);
+    redirect(
+      buildUrl("/admin/businesses", {
+        error: error.message,
+      })
+    );
   }
 
   revalidatePath("/admin/businesses");
   revalidatePath("/admin");
+
+  redirect(
+    buildUrl("/admin/businesses", {
+      success:
+        nextStatus === "active"
+          ? "Negocio activado correctamente."
+          : "Negocio desactivado correctamente.",
+    })
+  );
 }
+
 export async function archiveBusiness(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
 
   if (!id) {
-    throw new Error("No se recibió el ID del negocio.");
+    redirect(
+      buildUrl("/admin/businesses", {
+        error: "No se recibió el ID del negocio.",
+      })
+    );
   }
 
   const { error } = await supabaseServiceRole
@@ -104,18 +161,32 @@ export async function archiveBusiness(formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    throw new Error(error.message);
+    redirect(
+      buildUrl("/admin/businesses", {
+        error: error.message,
+      })
+    );
   }
 
   revalidatePath("/admin/businesses");
   revalidatePath("/admin");
+
+  redirect(
+    buildUrl("/admin/businesses", {
+      success: "Negocio archivado correctamente.",
+    })
+  );
 }
 
 export async function restoreBusiness(formData: FormData) {
   const id = String(formData.get("id") ?? "").trim();
 
   if (!id) {
-    throw new Error("No se recibió el ID del negocio.");
+    redirect(
+      buildUrl("/admin/businesses", {
+        error: "No se recibió el ID del negocio.",
+      })
+    );
   }
 
   const { error } = await supabaseServiceRole
@@ -126,9 +197,19 @@ export async function restoreBusiness(formData: FormData) {
     .eq("id", id);
 
   if (error) {
-    throw new Error(error.message);
+    redirect(
+      buildUrl("/admin/businesses", {
+        error: error.message,
+      })
+    );
   }
 
   revalidatePath("/admin/businesses");
   revalidatePath("/admin");
+
+  redirect(
+    buildUrl("/admin/businesses", {
+      success: "Negocio restaurado correctamente.",
+    })
+  );
 }

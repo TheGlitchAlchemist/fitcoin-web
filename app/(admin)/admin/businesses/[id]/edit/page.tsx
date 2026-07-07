@@ -3,10 +3,15 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Building2, Save } from "lucide-react";
 import { supabaseAdminServer } from "@/lib/supabase/admin-server";
 import { updateBusiness } from "../../actions";
+import { StatusMessage } from "@/components/ui/status-message";
 
 type EditBusinessPageProps = {
   params: Promise<{
     id: string;
+  }>;
+  searchParams: Promise<{
+    success?: string;
+    error?: string;
   }>;
 };
 
@@ -21,8 +26,10 @@ type Business = {
 
 export default async function EditBusinessPage({
   params,
+  searchParams,
 }: EditBusinessPageProps) {
   const { id } = await params;
+  const query = await searchParams;
 
   const { data: business, error } = await supabaseAdminServer
     .from("businesses")
@@ -60,6 +67,8 @@ export default async function EditBusinessPage({
           Volver
         </Link>
       </section>
+
+      <StatusMessage success={query.success} error={query.error} />
 
       <section className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-6 flex items-center gap-3">
@@ -104,6 +113,7 @@ export default async function EditBusinessPage({
             >
               <option value="active">Activo</option>
               <option value="inactive">Inactivo</option>
+              <option value="archived">Archivado</option>
             </select>
           </div>
 
