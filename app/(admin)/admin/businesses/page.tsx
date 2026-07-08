@@ -2,7 +2,6 @@ import Link from "next/link";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ArchiveBusinessForm } from "@/components/admin/archive-business-form";
 import {
-  archiveBusiness,
   createBusiness,
   restoreBusiness,
   toggleBusinessStatus,
@@ -36,6 +35,8 @@ type BusinessesPageProps = {
     error?: string;
     q?: string;
     status?: string;
+    accountEmail?: string;
+    temporaryPassword?: string;
   }>;
 };
 
@@ -43,8 +44,9 @@ export default async function BusinessesPage({
   searchParams,
 }: BusinessesPageProps) {
   const params = await searchParams;
+
   const searchTerm = params.q?.trim().toLowerCase() ?? "";
-const selectedStatus = params.status ?? "all";
+  const selectedStatus = params.status ?? "all";
 
   const { data: businesses, error } = await supabaseAdminServer
     .from("businesses")
@@ -72,20 +74,20 @@ const selectedStatus = params.status ?? "all";
   const archivedBusinesses =
     businesses?.filter((business) => business.status === "archived").length ??
     0;
-    
-    const filteredBusinesses =
-  businesses?.filter((business) => {
-    const matchesSearch =
-      !searchTerm ||
-      business.name.toLowerCase().includes(searchTerm) ||
-      business.description?.toLowerCase().includes(searchTerm) ||
-      business.address?.toLowerCase().includes(searchTerm);
 
-    const matchesStatus =
-      selectedStatus === "all" || business.status === selectedStatus;
+  const filteredBusinesses =
+    businesses?.filter((business) => {
+      const matchesSearch =
+        !searchTerm ||
+        business.name.toLowerCase().includes(searchTerm) ||
+        business.description?.toLowerCase().includes(searchTerm) ||
+        business.address?.toLowerCase().includes(searchTerm);
 
-    return matchesSearch && matchesStatus;
-  }) ?? [];
+      const matchesStatus =
+        selectedStatus === "all" || business.status === selectedStatus;
+
+      return matchesSearch && matchesStatus;
+    }) ?? [];
 
   return (
     <div className="space-y-6">
@@ -116,6 +118,50 @@ const selectedStatus = params.status ?? "all";
 
       <StatusMessage success={params.success} error={params.error} />
 
+      {params.accountEmail && params.temporaryPassword && (
+        <section className="rounded-[1.5rem] border border-[#17A649]/20 bg-[#17A649]/10 p-6 shadow-sm">
+          <div>
+            <h2 className="text-xl font-bold text-[#0B1A26]">
+              Cuenta de acceso creada
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-600">
+              Guarda estos datos. Esta contraseña temporal solo se muestra al
+              crear el negocio.
+            </p>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-[#17A649]/20 bg-white p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Correo
+              </p>
+              <p className="mt-2 break-all font-mono text-sm font-bold text-[#0B1A26]">
+                {params.accountEmail}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[#17A649]/20 bg-white p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Contraseña temporal
+              </p>
+              <p className="mt-2 break-all font-mono text-sm font-bold text-[#0B1A26]">
+                {params.temporaryPassword}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <Link
+              href="/admin/businesses"
+              className="inline-flex items-center justify-center rounded-2xl bg-[#0B1A26] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#12304a]"
+            >
+              Ocultar credenciales
+            </Link>
+          </div>
+        </section>
+      )}
+
       <section
         id="new-business"
         className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm"
@@ -125,7 +171,8 @@ const selectedStatus = params.status ?? "all";
             Agregar negocio
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Registra un nuevo negocio afiliado dentro del ecosistema Fitcoin.
+            Registra un nuevo negocio afiliado y crea su cuenta de acceso al
+            panel de negocio.
           </p>
         </div>
 
@@ -181,12 +228,40 @@ const selectedStatus = params.status ?? "all";
             </select>
           </div>
 
+          <div className="lg:col-span-2">
+            <label className="mb-2 block text-sm font-semibold text-[#0B1A26]">
+              Nombre del encargado
+            </label>
+            <input
+              name="accountFullName"
+              type="text"
+              placeholder="Ej. Encargado Fit Market"
+              className="w-full rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-3 text-sm outline-none transition focus:border-[#17A649] focus:bg-white"
+            />
+          </div>
+
+          <div className="lg:col-span-2">
+            <label className="mb-2 block text-sm font-semibold text-[#0B1A26]">
+              Correo de acceso del negocio
+            </label>
+            <input
+              name="accountEmail"
+              type="email"
+              placeholder="Ej. negocio@correo.com"
+              className="w-full rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-3 text-sm outline-none transition focus:border-[#17A649] focus:bg-white"
+            />
+            <p className="mt-2 text-xs text-slate-500">
+              Si lo dejas vacío, Fitcoin generará un correo automático para
+              iniciar sesión.
+            </p>
+          </div>
+
           <div className="lg:col-span-4">
             <button
               type="submit"
               className="inline-flex items-center justify-center rounded-2xl bg-[#0B1A26] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#12304a]"
             >
-              Guardar negocio
+              Guardar negocio y crear usuario
             </button>
           </div>
         </form>
@@ -277,45 +352,45 @@ const selectedStatus = params.status ?? "all";
             </p>
           </div>
 
-<form className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
-  <div className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 lg:w-80">
-    <Search className="h-4 w-4 text-slate-400" />
-    <input
-      name="q"
-      type="text"
-      defaultValue={params.q ?? ""}
-      placeholder="Buscar negocio..."
-      className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-    />
-  </div>
+          <form className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
+            <div className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 lg:w-80">
+              <Search className="h-4 w-4 text-slate-400" />
+              <input
+                name="q"
+                type="text"
+                defaultValue={params.q ?? ""}
+                placeholder="Buscar negocio..."
+                className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+              />
+            </div>
 
-  <select
-    name="status"
-    defaultValue={selectedStatus}
-    className="rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 text-sm font-medium text-slate-600 outline-none transition focus:border-[#17A649] focus:bg-white"
-  >
-    <option value="all">Todos</option>
-    <option value="active">Activos</option>
-    <option value="inactive">Inactivos</option>
-    <option value="archived">Archivados</option>
-  </select>
+            <select
+              name="status"
+              defaultValue={selectedStatus}
+              className="rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 text-sm font-medium text-slate-600 outline-none transition focus:border-[#17A649] focus:bg-white"
+            >
+              <option value="all">Todos</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+              <option value="archived">Archivados</option>
+            </select>
 
-  <button
-    type="submit"
-    className="rounded-2xl bg-[#0B1A26] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#12304a]"
-  >
-    Buscar
-  </button>
+            <button
+              type="submit"
+              className="rounded-2xl bg-[#0B1A26] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#12304a]"
+            >
+              Buscar
+            </button>
 
-  {(params.q || selectedStatus !== "all") && (
-    <Link
-      href="/admin/businesses"
-      className="rounded-2xl border border-slate-200 px-5 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-[#F2F2F2]"
-    >
-      Limpiar
-    </Link>
-  )}
-</form>
+            {(params.q || selectedStatus !== "all") && (
+              <Link
+                href="/admin/businesses"
+                className="rounded-2xl border border-slate-200 px-5 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-[#F2F2F2]"
+              >
+                Limpiar
+              </Link>
+            )}
+          </form>
         </div>
 
         <div className="overflow-x-auto">

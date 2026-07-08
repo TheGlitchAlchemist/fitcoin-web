@@ -3,10 +3,34 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabaseServiceRole } from "@/lib/supabase/service-role";
+import { randomBytes, randomUUID } from "crypto";
 
 function buildUrl(path: string, params: Record<string, string>) {
   const searchParams = new URLSearchParams(params);
   return `${path}?${searchParams.toString()}`;
+}
+
+function slugify(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/^\.+|\.+$/g, "")
+    .slice(0, 32) || "negocio";
+}
+
+function generateTemporaryPassword() {
+  const chars =
+    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+
+  const bytes = randomBytes(10);
+
+  const randomPart = Array.from(bytes)
+    .map((byte) => chars[byte % chars.length])
+    .join("");
+
+  return `Fit-${randomPart}`;
 }
 
 export async function createBusiness(formData: FormData) {
@@ -14,6 +38,14 @@ export async function createBusiness(formData: FormData) {
   const description = String(formData.get("description") ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
   const status = String(formData.get("status") ?? "active");
+
+  const accountFullName =
+    String(formData.get("accountFullName") ?? "").trim() ||
+    `Encargado ${name}`;
+
+  const accountEmailInput = String(formData.get("accountEmail") ?? "")
+    .trim()
+    .toLowerCase();
 
   if (!name) {
     redirect(
@@ -23,17 +55,80 @@ export async function createBusiness(formData: FormData) {
     );
   }
 
-  const { error } = await supabaseServiceRole.from("businesses").insert({
-    name,
-    description: description || null,
-    address: address || null,
-    status,
-  });
+  const generatedEmail = `${slugify(name)}.${randomUUID().slice(
+    0,
+    8
+  )}@fitcoin.test`;
 
-  if (error) {
+  const accountEmail = accountEmailInput || generatedEmail;
+  const temporaryPassword = generateTemporaryPassword();
+
+  const { data: business, error: businessError } = await supabaseServiceRole
+    .from("businesses")
+    .insert({
+      name,
+      description: description || null,
+      address: address || null,
+      status,
+    })
+    .select("id, name")
+    .single();
+
+  if (businessError || !business) {
     redirect(
       buildUrl("/admin/businesses", {
-        error: error.message,
+        error: businessError?.message ?? "No se pudo crear el negocio.",
+      })
+    );
+  }
+
+  const { data: authData, error: authError } =
+    await supabaseServiceRole.auth.admin.createUser({
+      email: accountEmail,
+      password: temporaryPassword,
+      email_confirm: true,
+      user_metadata: {
+        full_name: accountFullName,
+        role: "business",
+        business_id: business.id,
+      },
+    });
+
+  if (authError || !authData.user) {
+    await supabaseServiceRole.from("businesses").delete().eq("id", business.id);
+
+    redirect(
+      buildUrl("/admin/businesses", {
+        error:
+          authError?.message ??
+          "El negocio se creó, pero no se pudo crear el usuario de acceso.",
+      })
+    );
+  }
+
+  const { error: profileError } = await supabaseServiceRole
+    .from("profiles")
+    .upsert(
+      {
+        id: authData.user.id,
+        full_name: accountFullName,
+        email: accountEmail,
+        role: "business",
+        business_id: business.id,
+        status: "active",
+      },
+      {
+        onConflict: "id",
+      }
+    );
+
+  if (profileError) {
+    await supabaseServiceRole.auth.admin.deleteUser(authData.user.id);
+    await supabaseServiceRole.from("businesses").delete().eq("id", business.id);
+
+    redirect(
+      buildUrl("/admin/businesses", {
+        error: profileError.message,
       })
     );
   }
@@ -43,7 +138,9 @@ export async function createBusiness(formData: FormData) {
 
   redirect(
     buildUrl("/admin/businesses", {
-      success: "Negocio creado correctamente.",
+      success: "Negocio y usuario de acceso creados correctamente.",
+      accountEmail,
+      temporaryPassword,
     })
   );
 }
