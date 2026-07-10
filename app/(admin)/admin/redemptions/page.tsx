@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Building2,
   CheckCircle2,
@@ -42,17 +43,21 @@ type Offer = Record<string, unknown> & {
   id: string;
 };
 
+type AdminRedemptionsPageProps = {
+  searchParams: Promise<{
+    q?: string;
+  }>;
+};
+
 function getOfferName(offer?: Offer) {
   if (!offer) return "Oferta no encontrada";
 
-  return (
-    String(
-      offer.title ??
-        offer.name ??
-        offer.offer_name ??
-        offer.product_name ??
-        "Oferta sin nombre"
-    )
+  return String(
+    offer.title ??
+      offer.name ??
+      offer.offer_name ??
+      offer.product_name ??
+      "Oferta sin nombre"
   );
 }
 
@@ -112,7 +117,12 @@ function getStatusClasses(status: string) {
   return "bg-slate-100 text-slate-600";
 }
 
-export default async function AdminRedemptionsPage() {
+export default async function AdminRedemptionsPage({
+  searchParams,
+}: AdminRedemptionsPageProps) {
+  const params = await searchParams;
+  const searchTerm = params.q?.trim().toLowerCase() ?? "";
+
   const [
     { data: redemptions, error: redemptionsError },
     { data: profiles },
@@ -160,6 +170,49 @@ export default async function AdminRedemptionsPage() {
   );
 
   const allRedemptions = (redemptions ?? []) as Redemption[];
+
+  const filteredRedemptions = allRedemptions.filter((redemption) => {
+    if (!searchTerm) return true;
+
+    const profile = redemption.user_id
+      ? profileMap.get(redemption.user_id)
+      : null;
+
+    const businessName = redemption.business_id
+      ? businessMap.get(redemption.business_id) ?? "Negocio no encontrado"
+      : "Sin negocio";
+
+    const offer = redemption.offer_id
+      ? offerMap.get(redemption.offer_id)
+      : undefined;
+
+    const offerName = getOfferName(offer);
+    const offerCost = getOfferCost(offer, redemption);
+    const redemptionCode = getRedemptionCode(redemption);
+    const statusLabel = getStatusLabel(redemption.status);
+
+    const dateText = redemption.created_at
+      ? new Date(redemption.created_at).toLocaleDateString("es-MX", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        })
+      : "Sin fecha";
+
+    return (
+      profile?.full_name?.toLowerCase().includes(searchTerm) ||
+      profile?.email?.toLowerCase().includes(searchTerm) ||
+      businessName.toLowerCase().includes(searchTerm) ||
+      offerName.toLowerCase().includes(searchTerm) ||
+      redemption.status.toLowerCase().includes(searchTerm) ||
+      statusLabel.toLowerCase().includes(searchTerm) ||
+      redemptionCode.toLowerCase().includes(searchTerm) ||
+      redemption.id.toLowerCase().includes(searchTerm) ||
+      redemption.offer_id?.toLowerCase().includes(searchTerm) ||
+      String(offerCost ?? "").includes(searchTerm) ||
+      dateText.toLowerCase().includes(searchTerm)
+    );
+  });
 
   const totalRedemptions = allRedemptions.length;
 
@@ -281,18 +334,40 @@ export default async function AdminRedemptionsPage() {
               Lista de canjes
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Canjes registrados en todas las cuentas del sistema.
+              {searchTerm
+                ? `Resultados encontrados: ${filteredRedemptions.length}`
+                : "Canjes registrados en todas las cuentas del sistema."}
             </p>
           </div>
 
-          <div className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 lg:w-80">
-            <Search className="h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Buscar canje..."
-              className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-            />
-          </div>
+          <form className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
+            <div className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 lg:w-80">
+              <Search className="h-4 w-4 text-slate-400" />
+              <input
+                name="q"
+                type="text"
+                defaultValue={params.q ?? ""}
+                placeholder="Buscar canje..."
+                className="w-full bg-transparent text-sm text-[#0B1A26] outline-none placeholder:text-slate-400"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="rounded-2xl bg-[#0B1A26] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#12304a]"
+            >
+              Buscar
+            </button>
+
+            {params.q && (
+              <Link
+                href="/admin/redemptions"
+                className="rounded-2xl border border-slate-200 px-5 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-[#F2F2F2]"
+              >
+                Limpiar
+              </Link>
+            )}
+          </form>
         </div>
 
         <div className="overflow-x-auto">
@@ -310,7 +385,7 @@ export default async function AdminRedemptionsPage() {
             </thead>
 
             <tbody>
-              {allRedemptions.map((redemption) => {
+              {filteredRedemptions.map((redemption) => {
                 const profile = redemption.user_id
                   ? profileMap.get(redemption.user_id)
                   : null;
@@ -416,19 +491,19 @@ export default async function AdminRedemptionsPage() {
           </table>
         </div>
 
-        {allRedemptions.length === 0 && (
+        {filteredRedemptions.length === 0 && (
           <div className="p-10 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F2F2F2] text-slate-400">
               <TicketCheck className="h-7 w-7" />
             </div>
 
             <h3 className="font-bold text-[#0B1A26]">
-              No hay canjes registrados
+              No se encontraron canjes
             </h3>
 
             <p className="mt-2 text-sm text-slate-500">
-              Cuando los usuarios canjeen ofertas, los registros aparecerán
-              aquí.
+              Intenta buscar por usuario, correo, negocio, oferta, estado,
+              código, costo o fecha.
             </p>
           </div>
         )}

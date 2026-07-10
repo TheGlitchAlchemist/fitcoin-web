@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { StatusMessage } from "@/components/ui/status-message";
 import { ArchiveBusinessForm } from "@/components/admin/archive-business-form";
+import { CreateBusinessModal } from "@/components/admin/create-business-modal";
+
 import {
-  createBusiness,
   restoreBusiness,
   toggleBusinessStatus,
 } from "./actions";
@@ -107,13 +108,7 @@ export default async function BusinessesPage({
           </p>
         </div>
 
-        <a
-          href="#new-business"
-          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#17A649] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#2CBF42]"
-        >
-          <Plus className="h-5 w-5" />
-          Nuevo negocio
-        </a>
+       <CreateBusinessModal />
       </section>
 
       <StatusMessage success={params.success} error={params.error} />
@@ -162,110 +157,6 @@ export default async function BusinessesPage({
         </section>
       )}
 
-      <section
-        id="new-business"
-        className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-[#0B1A26]">
-            Agregar negocio
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Registra un nuevo negocio afiliado y crea su cuenta de acceso al
-            panel de negocio.
-          </p>
-        </div>
-
-        <form action={createBusiness} className="grid gap-4 lg:grid-cols-4">
-          <div className="lg:col-span-1">
-            <label className="mb-2 block text-sm font-semibold text-[#0B1A26]">
-              Nombre del negocio
-            </label>
-            <input
-              name="name"
-              type="text"
-              required
-              placeholder="Ej. Fit Market Colima"
-              className="w-full rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-3 text-sm outline-none transition focus:border-[#17A649] focus:bg-white"
-            />
-          </div>
-
-          <div className="lg:col-span-1">
-            <label className="mb-2 block text-sm font-semibold text-[#0B1A26]">
-              Descripción
-            </label>
-            <input
-              name="description"
-              type="text"
-              placeholder="Ej. Tienda saludable"
-              className="w-full rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-3 text-sm outline-none transition focus:border-[#17A649] focus:bg-white"
-            />
-          </div>
-
-          <div className="lg:col-span-1">
-            <label className="mb-2 block text-sm font-semibold text-[#0B1A26]">
-              Dirección
-            </label>
-            <input
-              name="address"
-              type="text"
-              placeholder="Ej. Colima, Colima"
-              className="w-full rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-3 text-sm outline-none transition focus:border-[#17A649] focus:bg-white"
-            />
-          </div>
-
-          <div className="lg:col-span-1">
-            <label className="mb-2 block text-sm font-semibold text-[#0B1A26]">
-              Estado
-            </label>
-            <select
-              name="status"
-              defaultValue="active"
-              className="w-full rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-3 text-sm outline-none transition focus:border-[#17A649] focus:bg-white"
-            >
-              <option value="active">Activo</option>
-              <option value="inactive">Inactivo</option>
-            </select>
-          </div>
-
-          <div className="lg:col-span-2">
-            <label className="mb-2 block text-sm font-semibold text-[#0B1A26]">
-              Nombre del encargado
-            </label>
-            <input
-              name="accountFullName"
-              type="text"
-              placeholder="Ej. Encargado Fit Market"
-              className="w-full rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-3 text-sm outline-none transition focus:border-[#17A649] focus:bg-white"
-            />
-          </div>
-
-          <div className="lg:col-span-2">
-            <label className="mb-2 block text-sm font-semibold text-[#0B1A26]">
-              Correo de acceso del negocio
-            </label>
-            <input
-              name="accountEmail"
-              type="email"
-              placeholder="Ej. negocio@correo.com"
-              className="w-full rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-3 text-sm outline-none transition focus:border-[#17A649] focus:bg-white"
-            />
-            <p className="mt-2 text-xs text-slate-500">
-              Si lo dejas vacío, Fitcoin generará un correo automático para
-              iniciar sesión.
-            </p>
-          </div>
-
-          <div className="lg:col-span-4">
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center rounded-2xl bg-[#0B1A26] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#12304a]"
-            >
-              Guardar negocio y crear usuario
-            </button>
-          </div>
-        </form>
-      </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
