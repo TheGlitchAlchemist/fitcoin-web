@@ -4,7 +4,7 @@ import type { UserProfile } from "@/lib/auth/current-user";
 import { logout } from "@/app/(auth)/actions";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   Building2,
@@ -17,11 +17,13 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type AdminNavbarProps = {
   profile: UserProfile;
 };
+
+type SearchScope = "businesses" | "users" | "transactions" | "redemptions";
 
 const adminLinks = [
   {
@@ -56,9 +58,84 @@ const adminLinks = [
   },
 ];
 
+const searchScopes: {
+  label: string;
+  value: SearchScope;
+  href: string;
+}[] = [
+  {
+    label: "Negocios",
+    value: "businesses",
+    href: "/admin/businesses",
+  },
+  {
+    label: "Usuarios",
+    value: "users",
+    href: "/admin/users",
+  },
+  {
+    label: "Transacciones",
+    value: "transactions",
+    href: "/admin/transactions",
+  },
+  {
+    label: "Canjes",
+    value: "redemptions",
+    href: "/admin/redemptions",
+  },
+];
+
+function getScopeFromPathname(pathname: string): SearchScope {
+  if (pathname.startsWith("/admin/users")) {
+    return "users";
+  }
+
+  if (pathname.startsWith("/admin/transactions")) {
+    return "transactions";
+  }
+
+  if (pathname.startsWith("/admin/redemptions")) {
+    return "redemptions";
+  }
+
+  return "businesses";
+}
+
+function getHrefFromScope(scope: SearchScope) {
+  return searchScopes.find((item) => item.value === scope)?.href ?? "/admin";
+}
+
 export function AdminNavbar({ profile }: AdminNavbarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
   const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchScope, setSearchScope] = useState<SearchScope>(() =>
+    getScopeFromPathname(pathname)
+  );
+
+  useEffect(() => {
+    setSearchScope(getScopeFromPathname(pathname));
+  }, [pathname]);
+
+  function handleSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const query = searchQuery.trim();
+
+    if (!query) {
+      return;
+    }
+
+    const href = getHrefFromScope(searchScope);
+    const params = new URLSearchParams({
+      q: query,
+    });
+
+    router.push(`${href}?${params.toString()}`);
+    setIsOpen(false);
+  }
 
   return (
     <>
@@ -84,16 +161,43 @@ export function AdminNavbar({ profile }: AdminNavbarProps) {
             </div>
           </div>
 
-          <div className="hidden flex-1 justify-center px-8 md:flex">
-            <div className="flex w-full max-w-md items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5">
-              <Search className="h-4 w-4 text-slate-400" />
+          <form
+            onSubmit={handleSearch}
+            className="hidden flex-1 justify-center px-8 md:flex"
+          >
+            <div className="flex w-full max-w-2xl items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5">
+              <Search className="h-4 w-4 shrink-0 text-slate-400" />
+
               <input
                 type="text"
-                placeholder="Buscar negocio, usuario o canje..."
-                className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Buscar en el panel..."
+                className="w-full bg-transparent text-sm text-[#0B1A26] outline-none placeholder:text-slate-400"
               />
+
+              <select
+                value={searchScope}
+                onChange={(event) =>
+                  setSearchScope(event.target.value as SearchScope)
+                }
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 outline-none transition focus:border-[#17A649]"
+              >
+                {searchScopes.map((scope) => (
+                  <option key={scope.value} value={scope.value}>
+                    {scope.label}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="submit"
+                className="rounded-xl bg-[#0B1A26] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#12304a]"
+              >
+                Buscar
+              </button>
             </div>
-          </div>
+          </form>
 
           <div className="flex items-center gap-2 sm:gap-3">
             <button className="rounded-2xl border border-slate-200 bg-white p-2.5 text-slate-600 transition hover:bg-[#F2F2F2]">
@@ -120,14 +224,45 @@ export function AdminNavbar({ profile }: AdminNavbarProps) {
           </div>
         </div>
 
-        <div className="mt-3 flex items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 md:hidden">
-          <Search className="h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar..."
-            className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
-          />
-        </div>
+        <form
+          onSubmit={handleSearch}
+          className="mt-3 flex flex-col gap-2 md:hidden"
+        >
+          <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5">
+            <Search className="h-4 w-4 shrink-0 text-slate-400" />
+
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Buscar..."
+              className="w-full bg-transparent text-sm text-[#0B1A26] outline-none placeholder:text-slate-400"
+            />
+          </div>
+
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <select
+              value={searchScope}
+              onChange={(event) =>
+                setSearchScope(event.target.value as SearchScope)
+              }
+              className="rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 text-sm font-bold text-slate-600 outline-none transition focus:border-[#17A649] focus:bg-white"
+            >
+              {searchScopes.map((scope) => (
+                <option key={scope.value} value={scope.value}>
+                  {scope.label}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="submit"
+              className="rounded-2xl bg-[#0B1A26] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#12304a]"
+            >
+              Buscar
+            </button>
+          </div>
+        </form>
       </header>
 
       {isOpen && (

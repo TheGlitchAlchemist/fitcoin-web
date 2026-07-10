@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   ArrowDownCircle,
   ArrowUpCircle,
@@ -27,6 +28,12 @@ type Profile = {
   email: string | null;
 };
 
+type AdminTransactionsPageProps = {
+  searchParams: Promise<{
+    q?: string;
+  }>;
+};
+
 function getTransactionTypeLabel(type: string) {
   const labels: Record<string, string> = {
     earn_activity: "Ganancia por actividad",
@@ -39,7 +46,12 @@ function getTransactionTypeLabel(type: string) {
   return labels[type] ?? type;
 }
 
-export default async function AdminTransactionsPage() {
+export default async function AdminTransactionsPage({
+  searchParams,
+}: AdminTransactionsPageProps) {
+  const params = await searchParams;
+  const searchTerm = params.q?.trim().toLowerCase() ?? "";
+
   const [{ data: transactions, error: transactionsError }, { data: profiles }] =
     await Promise.all([
       supabaseServiceRole
@@ -70,6 +82,39 @@ export default async function AdminTransactionsPage() {
   );
 
   const allTransactions = (transactions ?? []) as CoinTransaction[];
+
+  const filteredTransactions = allTransactions.filter((transaction) => {
+    if (!searchTerm) return true;
+
+    const profile = transaction.user_id
+      ? profileMap.get(transaction.user_id)
+      : null;
+
+    const typeLabel = getTransactionTypeLabel(transaction.type);
+    const amountText = String(transaction.amount);
+    const balanceText = String(transaction.balance_after ?? "");
+    const dateText = new Date(transaction.created_at).toLocaleDateString(
+      "es-MX",
+      {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }
+    );
+
+    return (
+      profile?.full_name?.toLowerCase().includes(searchTerm) ||
+      profile?.email?.toLowerCase().includes(searchTerm) ||
+      transaction.type.toLowerCase().includes(searchTerm) ||
+      typeLabel.toLowerCase().includes(searchTerm) ||
+      amountText.includes(searchTerm) ||
+      balanceText.includes(searchTerm) ||
+      transaction.reference_table?.toLowerCase().includes(searchTerm) ||
+      transaction.reference_id?.toLowerCase().includes(searchTerm) ||
+      transaction.id.toLowerCase().includes(searchTerm) ||
+      dateText.toLowerCase().includes(searchTerm)
+    );
+  });
 
   const totalTransactions = allTransactions.length;
 
@@ -190,18 +235,40 @@ export default async function AdminTransactionsPage() {
               Lista de transacciones
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Movimientos registrados en la tabla coin_transactions.
+              {searchTerm
+                ? `Resultados encontrados: ${filteredTransactions.length}`
+                : "Movimientos registrados en la tabla coin_transactions."}
             </p>
           </div>
 
-          <div className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 lg:w-80">
-            <Search className="h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Buscar transacción..."
-              className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-            />
-          </div>
+          <form className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
+            <div className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 lg:w-80">
+              <Search className="h-4 w-4 text-slate-400" />
+              <input
+                name="q"
+                type="text"
+                defaultValue={params.q ?? ""}
+                placeholder="Buscar transacción..."
+                className="w-full bg-transparent text-sm text-[#0B1A26] outline-none placeholder:text-slate-400"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="rounded-2xl bg-[#0B1A26] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#12304a]"
+            >
+              Buscar
+            </button>
+
+            {params.q && (
+              <Link
+                href="/admin/transactions"
+                className="rounded-2xl border border-slate-200 px-5 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-[#F2F2F2]"
+              >
+                Limpiar
+              </Link>
+            )}
+          </form>
         </div>
 
         <div className="overflow-x-auto">
@@ -218,7 +285,7 @@ export default async function AdminTransactionsPage() {
             </thead>
 
             <tbody>
-              {allTransactions.map((transaction) => {
+              {filteredTransactions.map((transaction) => {
                 const profile = transaction.user_id
                   ? profileMap.get(transaction.user_id)
                   : null;
@@ -307,19 +374,19 @@ export default async function AdminTransactionsPage() {
           </table>
         </div>
 
-        {allTransactions.length === 0 && (
+        {filteredTransactions.length === 0 && (
           <div className="p-10 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F2F2F2] text-slate-400">
               <WalletCards className="h-7 w-7" />
             </div>
 
             <h3 className="font-bold text-[#0B1A26]">
-              No hay transacciones registradas
+              No se encontraron transacciones
             </h3>
 
             <p className="mt-2 text-sm text-slate-500">
-              Cuando los usuarios generen o gasten Fitcoins, los movimientos
-              aparecerán aquí.
+              Intenta buscar por usuario, correo, tipo, cantidad, referencia o
+              fecha.
             </p>
           </div>
         )}

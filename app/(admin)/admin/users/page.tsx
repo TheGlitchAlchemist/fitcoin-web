@@ -1,8 +1,10 @@
+import Link from "next/link";
 import {
   Building2,
   Mail,
   Search,
   ShieldCheck,
+  Smartphone,
   Store,
   UserRound,
   Users,
@@ -24,7 +26,60 @@ type Business = {
   name: string;
 };
 
-export default async function AdminUsersPage() {
+type AdminUsersPageProps = {
+  searchParams: Promise<{
+    q?: string;
+  }>;
+};
+
+function getRoleLabel(role: string) {
+  const labels: Record<string, string> = {
+    admin: "Administrador",
+    business: "Negocio",
+    user: "Usuario app",
+  };
+
+  return labels[role] ?? role;
+}
+
+function getRoleClasses(role: string) {
+  if (role === "admin") {
+    return "bg-[#BF964B]/10 text-[#BF964B]";
+  }
+
+  if (role === "business") {
+    return "bg-[#17A649]/10 text-[#17A649]";
+  }
+
+  if (role === "user") {
+    return "bg-blue-50 text-blue-700";
+  }
+
+  return "bg-slate-100 text-slate-600";
+}
+
+function getBusinessName(profile: Profile, businessMap: Map<string, string>) {
+  if (profile.role === "admin") {
+    return "No aplica";
+  }
+
+  if (profile.role === "user") {
+    return "Usuario móvil";
+  }
+
+  if (profile.business_id) {
+    return businessMap.get(profile.business_id) ?? "Negocio no encontrado";
+  }
+
+  return "Sin negocio asignado";
+}
+
+export default async function AdminUsersPage({
+  searchParams,
+}: AdminUsersPageProps) {
+  const params = await searchParams;
+  const searchTerm = params.q?.trim().toLowerCase() ?? "";
+
   const [{ data: profiles, error: profilesError }, { data: businesses }] =
     await Promise.all([
       supabaseServiceRole
@@ -53,16 +108,37 @@ export default async function AdminUsersPage() {
     ])
   );
 
-  const totalUsers = profiles?.length ?? 0;
+  const allProfiles = (profiles ?? []) as Profile[];
 
-  const adminUsers =
-    profiles?.filter((profile) => profile.role === "admin").length ?? 0;
+  const filteredProfiles = allProfiles.filter((profile) => {
+    const businessName = getBusinessName(profile, businessMap);
+    const roleLabel = getRoleLabel(profile.role);
 
-  const businessUsers =
-    profiles?.filter((profile) => profile.role === "business").length ?? 0;
+    if (!searchTerm) return true;
 
-  const activeUsers =
-    profiles?.filter((profile) => profile.status === "active").length ?? 0;
+    return (
+      profile.full_name?.toLowerCase().includes(searchTerm) ||
+      profile.email?.toLowerCase().includes(searchTerm) ||
+      profile.role.toLowerCase().includes(searchTerm) ||
+      roleLabel.toLowerCase().includes(searchTerm) ||
+      businessName.toLowerCase().includes(searchTerm) ||
+      profile.status.toLowerCase().includes(searchTerm)
+    );
+  });
+
+  const totalUsers = allProfiles.length;
+
+  const adminUsers = allProfiles.filter(
+    (profile) => profile.role === "admin"
+  ).length;
+
+  const businessUsers = allProfiles.filter(
+    (profile) => profile.role === "business"
+  ).length;
+
+  const appUsers = allProfiles.filter(
+    (profile) => profile.role === "user"
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -145,19 +221,19 @@ export default async function AdminUsersPage() {
 
         <article className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <div className="rounded-2xl bg-[#17A649]/10 p-3 text-[#17A649]">
-              <UserRound className="h-5 w-5" />
+            <div className="rounded-2xl bg-blue-50 p-3 text-blue-700">
+              <Smartphone className="h-5 w-5" />
             </div>
-            <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
-              Activos
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+              App
             </span>
           </div>
 
           <p className="mt-5 text-sm font-medium text-slate-500">
-            Usuarios activos
+            Usuarios app móvil
           </p>
           <h2 className="mt-1 text-3xl font-bold text-[#0B1A26]">
-            {activeUsers}
+            {appUsers}
           </h2>
         </article>
       </section>
@@ -169,18 +245,40 @@ export default async function AdminUsersPage() {
               Lista de usuarios
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Registros obtenidos desde la tabla de perfiles.
+              {searchTerm
+                ? `Resultados encontrados: ${filteredProfiles.length}`
+                : "Registros obtenidos desde la tabla de perfiles."}
             </p>
           </div>
 
-          <div className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 lg:w-80">
-            <Search className="h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Buscar usuario..."
-              className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-            />
-          </div>
+          <form className="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
+            <div className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 bg-[#F2F2F2] px-4 py-2.5 lg:w-80">
+              <Search className="h-4 w-4 text-slate-400" />
+              <input
+                name="q"
+                type="text"
+                defaultValue={params.q ?? ""}
+                placeholder="Buscar usuario..."
+                className="w-full bg-transparent text-sm text-[#0B1A26] outline-none placeholder:text-slate-400"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="rounded-2xl bg-[#0B1A26] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#12304a]"
+            >
+              Buscar
+            </button>
+
+            {params.q && (
+              <Link
+                href="/admin/users"
+                className="rounded-2xl border border-slate-200 px-5 py-2.5 text-center text-sm font-bold text-slate-600 transition hover:bg-[#F2F2F2]"
+              >
+                Limpiar
+              </Link>
+            )}
+          </form>
         </div>
 
         <div className="overflow-x-auto">
@@ -197,10 +295,8 @@ export default async function AdminUsersPage() {
             </thead>
 
             <tbody>
-              {profiles?.map((profile: Profile) => {
-                const businessName = profile.business_id
-                  ? businessMap.get(profile.business_id) ?? "Negocio no encontrado"
-                  : "Sin negocio asignado";
+              {filteredProfiles.map((profile) => {
+                const businessName = getBusinessName(profile, businessMap);
 
                 return (
                   <tr
@@ -235,14 +331,10 @@ export default async function AdminUsersPage() {
                       <span
                         className={[
                           "rounded-full px-3 py-1 text-xs font-bold",
-                          profile.role === "admin"
-                            ? "bg-[#BF964B]/10 text-[#BF964B]"
-                            : "bg-[#17A649]/10 text-[#17A649]",
+                          getRoleClasses(profile.role),
                         ].join(" ")}
                       >
-                        {profile.role === "admin"
-                          ? "Administrador"
-                          : "Negocio"}
+                        {getRoleLabel(profile.role)}
                       </span>
                     </td>
 
@@ -283,18 +375,18 @@ export default async function AdminUsersPage() {
           </table>
         </div>
 
-        {profiles?.length === 0 && (
+        {filteredProfiles.length === 0 && (
           <div className="p-10 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F2F2F2] text-slate-400">
               <Users className="h-7 w-7" />
             </div>
 
             <h3 className="font-bold text-[#0B1A26]">
-              No hay usuarios registrados
+              No se encontraron usuarios
             </h3>
 
             <p className="mt-2 text-sm text-slate-500">
-              Cuando existan perfiles en Supabase, aparecerán aquí.
+              Intenta buscar por nombre, correo, rol o negocio asignado.
             </p>
           </div>
         )}
