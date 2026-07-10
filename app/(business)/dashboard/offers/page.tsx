@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ImageOff, Plus } from "lucide-react";
+import { ImageOff } from "lucide-react";
 import { requireBusiness } from "@/lib/auth/current-user";
 import { supabaseServiceRole } from "@/lib/supabase/service-role";
 import { PageHero } from "@/components/dashboard/page-hero";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/dashboard/badge";
 import { ToggleActiveButton } from "@/components/dashboard/toggle-active-button";
 import { formatFitcoins } from "@/lib/format";
 import { toggleOfferActive } from "./actions";
+import { NewOfferModal } from "@/components/dashboard/new-offer-modal";
 
 export default async function OffersPage() {
   const { business } = await requireBusiness();
@@ -22,15 +23,7 @@ export default async function OffersPage() {
       <PageHero
         title="Ofertas"
         description="Administra las ofertas que tu negocio publica en Fitcoin: precio en Fitcoins, stock disponible y vigencia."
-        action={
-          <Link
-            href="/dashboard/offers/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#17A649] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#117A37]"
-          >
-            <Plus size={16} />
-            Nueva oferta
-          </Link>
-        }
+        action={<NewOfferModal />}
       />
 
       <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white shadow-sm">
